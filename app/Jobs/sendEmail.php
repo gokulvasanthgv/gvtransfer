@@ -15,8 +15,12 @@ class sendEmail implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(String $to, String $mailableClass, $mailableData = [])
-    {
+    public function __construct(
+        String $to,
+        String $mailableClass,
+        $mailableData = [],
+        public bool $shouldBeEncrypted = false,
+    ) {
         $this->to = $to;
         $this->mailableClass = $mailableClass;
         $this->mailableData = $mailableData;

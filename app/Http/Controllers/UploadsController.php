@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 use App\Models\Share;
 use App\Models\File;
+use App\Models\RecipientContact;
 use App\Models\UploadSession;
 use App\Models\ReverseShareInvite;
 use Carbon\Carbon;
@@ -81,7 +82,14 @@ class UploadsController extends Controller
       'description' => ['max:500'],
       'uploadIds' => ['required', 'array'],
       'uploadIds.*' => ['required', 'string'],
-      'expiry_date' => ['required', 'date']
+      'expiry_date' => ['required', 'date'],
+      'recipients' => ['nullable', 'array'],
+      'recipients.*' => ['required', 'array'],
+      'recipients.*.name' => ['required', 'string', 'max:255'],
+      'recipients.*.email' => ['required', 'string', 'email', 'max:255', 'distinct:ignore_case'],
+    ], [], [
+      'recipients.*.name' => 'recipient name',
+      'recipients.*.email' => 'recipient email address',
     ]);
 
     if ($validator->fails()) {
@@ -416,20 +424,32 @@ class UploadsController extends Controller
       ]);
     }
 
-    // Process recipients if provided (normal share flow)
-    if ($request->has('recipients') && is_array($request->recipients)) {
-      foreach ($request->recipients as $recipient) {
-        if (is_array($recipient) && isset($recipient['name']) && isset($recipient['email'])) {
-          $this->sendShareCreatedEmail($share, $recipient);
-        }
-      }
+    $recipients = $validator->validated()['recipients'] ?? [];
+    foreach ($recipients as $recipient) {
+      $this->sendShareCreatedEmail($share, [
+        'name' => $recipient['name'],
+        'email' => $recipient['email'],
+      ]);
+    }
+
+    $contactsSaved = true;
+    try {
+      RecipientContact::rememberFor($user, $recipients);
+    } catch (\Exception $exception) {
+      // The share and email jobs already exist. Report the contact failure separately.
+      $contactsSaved = false;
+      Log::error('Failed to save recipient contacts', [
+        'user_id' => $user->id,
+        'exception_type' => $exception::class,
+      ]);
     }
 
     return response()->json([
       'status' => 'success',
       'message' => 'Share created',
       'data' => [
-        'share' => $share
+        'share' => $share,
+        'recipient_contacts_saved' => $contactsSaved,
       ]
     ]);
   }
@@ -445,7 +465,7 @@ class UploadsController extends Controller
         'user' => $user,
         'share' => $share,
         'recipient' => $recipient
-      ]);
+      ], shouldBeEncrypted: true);
     }
   }
 

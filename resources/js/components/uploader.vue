@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import {
   CircleSlash2,
   FilePlus,
@@ -19,7 +19,7 @@ import {
   RotateCcw
 } from 'lucide-vue-next'
 import { niceFileSize, niceFileType, simpleUUID } from '../utils'
-import { getHealth, getMyProfile, uploadFilesInChunks, logout } from '../api'
+import { getHealth, getMyProfile, getRecipientContacts, uploadFilesInChunks, logout } from '../api'
 import Recipient from './recipient.vue'
 import { uploadController } from '../store'
 import { domData } from '../domData'
@@ -105,6 +105,41 @@ const passwordFormErrors = ref({
 })
 
 const recipients = ref([])
+const savedRecipients = ref([])
+const savedRecipientsLabel = computed(() => t.value('uploader.saved_recipients', 'Saved recipients'))
+const recipientOwnerId = computed(() => (store.isLoggedIn() && !store.isGuest() ? store.userId : null))
+const recipientEmailKey = (email) => email.trim().toLowerCase()
+const selectedRecipientEmails = computed(() => new Set(recipients.value.map(({ email }) => recipientEmailKey(email))))
+
+let savedRecipientsRequest = null
+const refreshSavedRecipients = async () => {
+  const ownerId = recipientOwnerId.value
+  if (!ownerId) return
+
+  savedRecipientsRequest?.abort()
+  const request = new AbortController()
+  savedRecipientsRequest = request
+
+  try {
+    const contacts = await getRecipientContacts(ownerId, request.signal)
+    if (!request.signal.aborted && recipientOwnerId.value === ownerId) {
+      savedRecipients.value = contacts
+    }
+  } catch {
+    if (!request.signal.aborted && recipientOwnerId.value === ownerId) {
+      toast.warning(t.value('uploader.saved_recipients_load_failed', 'Could not load saved recipients.'))
+    }
+  }
+}
+
+watch(recipientOwnerId, () => {
+  savedRecipientsRequest?.abort()
+  savedRecipients.value = []
+  recipients.value = []
+  refreshSavedRecipients()
+}, { immediate: true })
+
+onBeforeUnmount(() => savedRecipientsRequest?.abort())
 
 // Interrupted upload detection
 const UPLOAD_STATE_KEY = 'erugo_upload_in_progress'
@@ -344,6 +379,22 @@ const totalSize = computed(() => {
 })
 
 const uploadFiles = async () => {
+  const userId = store.userId
+  const shareRecipients = recipients.value
+    .map(({ name, email }) => ({ name: name.trim(), email: email.trim() }))
+    .filter(({ name, email }) => name || email)
+
+  if (shareRecipients.some(({ name, email }) => !name || !email)) {
+    toast.error(t.value('uploader.recipient_details_required', 'Enter a name and email address for each recipient.'))
+    return
+  }
+
+  const uniqueEmails = new Set(shareRecipients.map(({ email }) => recipientEmailKey(email)))
+  if (uniqueEmails.size !== shareRecipients.length) {
+    toast.error(t.value('uploader.duplicate_recipient_email', 'Add each recipient email address only once.'))
+    return
+  }
+
   const uploadId = simpleUUID()
   currentlyUploading.value = true
   isPaused.value = false
@@ -371,10 +422,7 @@ const uploadFiles = async () => {
   // Dismiss the interrupted upload panel if it's showing (user is resuming)
   showInterruptedUploadPanel.value = false
 
-  //before we try uploading lets just check we're logged in still
-  await getMyProfile()
-
-  await doTusUpload(uploadId)
+  await doTusUpload(uploadId, shareRecipients, userId)
 }
 
 const calculateExpiryDate = () => {
@@ -403,16 +451,21 @@ const multiplierFromUnit = (unit) => {
   }
 }
 
-const doTusUpload = async (uploadId) => {
+const doTusUpload = async (uploadId, shareRecipients, userId) => {
   let pageTitleAtStart = document.title
 
   try {
+    const profile = await getMyProfile()
+    if (!store.isLoggedIn() || store.userId !== userId || Number(profile.id) !== userId) {
+      throw new Error('The signed-in account changed. Please try again.')
+    }
+
     await uploadFilesInChunks(
       uploadBasket.value,
       uploadId,
       shareName.value,
       shareDescription.value,
-      recipients.value,
+      shareRecipients,
       calculateExpiryDate(),
       sharePassword.value,
       sharePasswordConfirm.value,
@@ -468,7 +521,13 @@ const doTusUpload = async (uploadId) => {
           thankGuestForUpload()
         } else {
           showSharePanel(createShareURL(result.data.share.long_id))
+          if (result.data.recipient_contacts_saved === false) {
+            toast.warning(t.value('uploader.saved_recipients_save_failed', 'Could not save recipients for this share.'))
+          } else if (shareRecipients.length && result.data.recipient_contacts_saved) {
+            refreshSavedRecipients()
+          }
         }
+        recipients.value = []
         uploadBasket.value = []
         shareName.value = ''
         shareDescription.value = ''
@@ -546,17 +605,24 @@ const copyShareUrl = () => {
 }
 
 const removeRecipient = (recipient) => {
-  console.log('remove recipient', recipient)
-  recipients.value = recipients.value.filter((item) => item.email !== recipient.email)
+  recipients.value = recipients.value.filter((item) => item.id !== recipient.id)
 }
 
 const addRecipient = () => {
-  const recipient = {
-    email: null,
-    name: null,
+  recipients.value.push({
+    id: simpleUUID(),
+    email: '',
+    name: '',
     showPopover: true
+  })
+}
+
+const addSavedRecipient = ({ target }) => {
+  const contact = savedRecipients.value.find(({ id }) => String(id) === target.value)
+  target.value = ''
+  if (contact && !selectedRecipientEmails.value.has(recipientEmailKey(contact.email))) {
+    recipients.value.push({ id: simpleUUID(), name: contact.name, email: contact.email })
   }
-  recipients.value.push(recipient)
 }
 
 const togglePause = () => {
@@ -877,28 +943,47 @@ const filesByDirectory = computed(() => {
   <div class="upload-basket-details pt-2">
     <div class="recipients" v-if="!store.isGuest()">
       <div class="button-outside-label uploader-add-recipient">
-        <button class="icon-only round" @click="addRecipient">
+        <button
+          type="button"
+          class="icon-only round"
+          :aria-label="$t('Add Recipient')"
+          :disabled="currentlyUploading"
+          @click="addRecipient"
+        >
           <Plus />
         </button>
         <div class="button-outside-label-text">{{ $t('Add Recipient') }}</div>
       </div>
       <div class="recipient-list">
-        <template v-if="recipients.length > 0">
-          <Recipient
-            v-for="recipient in recipients"
-            :key="recipient.id"
-            :recipient="recipient"
-            @remove="removeRecipient"
-            :ref="`recipient-${recipient.email}`"
-          />
-        </template>
-        <template v-else>
-          <div class="recipient-list-empty">
-            {{ $t('No recipients') }}
-            <br />
-            <small>{{ $t("We'll provide you with a link instead.") }}</small>
-          </div>
-        </template>
+        <select
+          v-if="savedRecipients.length"
+          class="saved-recipient-select"
+          :aria-label="savedRecipientsLabel"
+          :disabled="currentlyUploading"
+          @change="addSavedRecipient"
+        >
+          <option value="" disabled selected>{{ savedRecipientsLabel }}</option>
+          <option
+            v-for="contact in savedRecipients"
+            :key="contact.id"
+            :value="contact.id"
+            :disabled="selectedRecipientEmails.has(recipientEmailKey(contact.email))"
+          >
+            {{ contact.name }} ({{ contact.email }})
+          </option>
+        </select>
+        <Recipient
+          v-for="recipient in recipients"
+          :key="recipient.id"
+          :recipient="recipient"
+          :disabled="currentlyUploading"
+          @remove="removeRecipient"
+        />
+        <div class="recipient-list-empty" v-if="!recipients.length && !savedRecipients.length">
+          {{ $t('No recipients') }}
+          <br />
+          <small>{{ $t("We'll provide you with a link instead.") }}</small>
+        </div>
       </div>
     </div>
 

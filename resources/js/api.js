@@ -7,6 +7,11 @@ import * as tus from 'tus-js-client'
 import { watch } from 'vue'
 import JSZip from 'jszip'
 
+const shareCreationErrorMessage = (data, fallback) => {
+  const [validationError] = Object.values(data.data?.errors ?? {}).flat()
+  return validationError || data.message || fallback
+}
+
 // Bundling configuration for small files
 const BUNDLE_CONFIG = {
   minFileCount: 50, // Minimum number of files to trigger bundling
@@ -120,7 +125,8 @@ const uploadBundledFiles = async (
   passwordConfirm,
   onProgress,
   onComplete,
-  onError
+  onError,
+  userId
 ) => {
   try {
     // Phase 1: Bundle the files
@@ -219,11 +225,11 @@ const uploadBundledFiles = async (
         password_confirm: passwordConfirm,
         isBundle: true
       })
-    })
+    }, userId)
 
     if (!response.ok) {
       const data = await response.json()
-      throw new Error(data.message || 'Failed to create share from bundle')
+      throw new Error(shareCreationErrorMessage(data, 'Failed to create share from bundle'))
     }
 
     const data = await response.json()
@@ -247,7 +253,13 @@ const addJsonHeader = () => ({
 })
 
 // Wrapper for fetch that handles auth refresh
-const fetchWithAuth = async (url, options = {}) => {
+const fetchWithAuth = async (url, options = {}, expectedUserId) => {
+  const accountChanged = () => expectedUserId !== undefined &&
+    (!store.isLoggedIn() || store.userId !== expectedUserId)
+  if (accountChanged()) {
+    throw new Error('The signed-in account changed. Please try again.')
+  }
+
   // Add auth header if not present
   if (!options.headers?.Authorization) {
     options.headers = {
@@ -266,6 +278,8 @@ const fetchWithAuth = async (url, options = {}) => {
 
     // Handle 401 or 403
     if (response.status === 401 || response.status === 403) {
+      if (options.signal?.aborted || accountChanged()) return response
+
       // Clone the response so we can read the body
       const clonedResponse = response.clone()
       const responseData = await clonedResponse.json()
@@ -281,6 +295,10 @@ const fetchWithAuth = async (url, options = {}) => {
       if (response.status === 401) {
         try {
           const refreshData = await refresh()
+          if (options.signal?.aborted || accountChanged() ||
+              (expectedUserId !== undefined && Number(refreshData.userId) !== expectedUserId)) {
+            return response
+          }
 
           // Update auth header with new token
           options.headers = {
@@ -291,6 +309,7 @@ const fetchWithAuth = async (url, options = {}) => {
           // Retry original request with new token
           return await fetch(url, options)
         } catch (refreshError) {
+          if (options.signal?.aborted || accountChanged()) throw refreshError
           // If refresh fails, proceed to logout
         }
       }
@@ -1190,6 +1209,19 @@ export const getMyProfile = async () => {
   return data.data.user
 }
 
+export const getRecipientContacts = async (userId, signal) => {
+  const response = await fetchWithAuth(`${apiUrl}/api/users/me/recipient-contacts`, {
+    headers: addJsonHeader(),
+    cache: 'no-store',
+    signal
+  }, userId)
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.message)
+  }
+  return data.data.contacts
+}
+
 export const createFirstUser = async (user) => {
   const response = await fetch(`${apiUrl}/api/setup`, {
     method: 'POST',
@@ -1536,6 +1568,7 @@ export const uploadFilesInChunks = async (
   onComplete,
   onError
 ) => {
+  const userId = store.userId
   // Check if we should bundle the files (many small files)
   const useBundle = shouldBundleFiles(files)
 
@@ -1551,7 +1584,8 @@ export const uploadFilesInChunks = async (
       passwordConfirm,
       onProgress,
       onComplete,
-      onError
+      onError,
+      userId
     )
   }
 
@@ -1686,7 +1720,7 @@ export const uploadFilesInChunks = async (
           password: password,
           password_confirm: passwordConfirm
         })
-      })
+      }, userId)
 
       if (response.ok) {
         const data = await response.json()
@@ -1695,7 +1729,7 @@ export const uploadFilesInChunks = async (
       }
 
       const data = await response.json()
-      const errorMessage = data.message || 'Failed to create share from uploads'
+      const errorMessage = shareCreationErrorMessage(data, 'Failed to create share from uploads')
 
       // Check if this is the "not completed" error - worth retrying
       if (errorMessage.includes('not found or not completed') && attempt < maxRetries - 1) {

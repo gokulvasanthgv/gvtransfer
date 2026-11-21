@@ -1019,6 +1019,12 @@
     "upload_mode_not_supported": "No valid upload mode is selected! We're not sure what to suggest because this shouldn't be possible."
   },
   "uploader": {
+    "saved_recipients": "Saved recipients",
+    "saved_recipients_load_failed": "Could not load saved recipients.",
+    "saved_recipients_save_failed": "Could not save recipients for this share.",
+    "recipient_details_required": "Enter a name and email address for each recipient.",
+    "duplicate_recipient_email": "Add each recipient email address only once.",
+    "remove_recipient": "Remove recipient",
     "current_mode": {
       "chunked": "Chunked upload mode",
       "direct": "Direct upload mode"

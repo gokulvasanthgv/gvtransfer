@@ -19,6 +19,7 @@ use App\Http\Controllers\TusdHooksController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\SelfRegistrationController;
 use App\Http\Controllers\BackupsController;
+use App\Http\Controllers\RecipientContactsController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -62,6 +63,7 @@ Route::group([], function ($router) {
         Route::get('/', [UsersController::class, 'me'])->name('profile.view');
         Route::put('/', [UsersController::class, 'updateMe'])->name('profile.update');
         Route::delete('/providers/{providerId}', [UsersController::class, 'unlinkProvider'])->name('profile.unlinkProvider');
+        Route::get('/recipient-contacts', [RecipientContactsController::class, 'index'])->name('recipient-contacts.index');
     });
 
     //manage users [auth, admin]
