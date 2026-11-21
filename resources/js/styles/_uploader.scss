@@ -29,10 +29,25 @@
   margin-bottom: 0;
 
   .buttons {
-    @include flex-row;
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     width: 100%;
-    gap: 10px;
+    gap: 0.625rem;
+
+    button {
+      flex: 1 1 8rem;
+      min-width: 0;
+      min-height: max(44px, var(--button-height));
+      height: auto;
+      margin: 0;
+      padding: 0.625rem;
+      line-height: 1.25;
+
+      svg {
+        flex: none;
+      }
+    }
   }
 
   .max-size-label {
@@ -59,13 +74,12 @@
   background: var(--uploader-background-color);
   @include blur-background(5px);
   width: 100%;
+  min-height: 4.5rem;
+  max-height: clamp(7rem, 38svh, 21rem);
   overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px 10px 6px;
-  flex-grow: 1;
+  padding: 0.625rem;
   @include flex-column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  align-items: stretch;
 
   .basket-items {
     flex-grow: 1;
@@ -73,88 +87,66 @@
   }
 
   .upload-basket-folder {
-    position: relative;
     background: var(--uploader-item-background-color);
-    padding: 10px;
+    padding: 0.375rem 0.5rem;
     border-radius: var(--panel-border-radius);
-    margin-bottom: 3px;
-    
+    margin-bottom: 0.25rem;
+
     .upload-basket-folder {
-      padding-left: 20px;
+      padding-inline: 0;
     }
   }
-  
+
   .upload-basket-item {
-    position: relative;
-    @include flex-column;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-auto-rows: min-content;
+    align-items: center;
+    column-gap: 0.5rem;
     background: var(--uploader-item-background-color);
-    padding: 5px 10px;
+    padding: 0.375rem 0.625rem;
     border-radius: var(--panel-border-radius);
-    margin-bottom: 3px;
-    cursor: default;
-    
+    margin-bottom: 0.25rem;
+
     .name {
-      width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      grid-column: 1;
+      min-width: 0;
       color: var(--uploader-item-text-color);
       @include flex-row;
-      justify-content: flex-start;
-      gap: 5px;
+      gap: 0.375rem;
+
+      .icon {
+        flex: none;
+      }
 
       svg {
-        width: 16px;
-        height: 16px;
-        margin-top: -3px;
+        width: 1rem;
+        height: 1rem;
       }
     }
-    
+
     .meta {
+      grid-column: 1;
       @include flex-row;
-      justify-content: space-between;
-      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.25rem 0.625rem;
       color: var(--uploader-item-text-color);
       font-size: 0.8rem;
-      margin-top: 3px;
-      margin-left: 5px;
-      opacity: 0.4;
+      opacity: 0.75;
     }
-    
-    .hover-actions {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      @include flex-row;
-      justify-content: flex-end;
-      width: 100%;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-      pointer-events: none;
-      padding-right: 10px;
-      background-image: linear-gradient(to right, var(--panel-item-action-hover-background-color-from) 50%, var(--panel-item-action-hover-background-color-to));
-      border-radius: 0 5px 5px 0;
-      
-      button {
-        border: none;
-        cursor: pointer;
-        border-radius: 50%;
-        width: var(--icon-only-button-width);
-        height: var(--icon-only-button-width);
-      }
+
+    .file-actions,
+    .upload-status {
+      grid-area: 1 / 2 / span 2;
     }
-    
-    &:hover {
-      .hover-actions {
-        opacity: 1;
-        pointer-events: all;
-      }
+
+    .file-actions button {
+      width: 44px;
+      height: 44px;
+      margin: 0;
     }
   }
-  
+
   .upload-basket-empty {
     @include flex-column;
     justify-content: center;
@@ -180,13 +172,35 @@
 }
 
 .upload-button-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.5rem;
   border-radius: 0 0 var(--panel-border-radius) var(--panel-border-radius);
   width: 100%;
   margin-top: 0;
-  padding: 10px 20px;
+  padding: 0.625rem;
   background: var(--uploader-background-color);
   @include blur-background(5px);
   z-index: 100;
+
+  button {
+    margin: 0;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    padding-block: 0.625rem;
+    line-height: 1.25;
+
+    svg {
+      flex: none;
+    }
+  }
+
+  .upload-button {
+    width: 100%;
+    padding-inline: 0.5rem;
+  }
 
   .svg-container {
     svg {
@@ -198,167 +212,107 @@
 }
 
 .progress-bar-container {
-  margin-top: -20px;
-  background: var(--panel-item-background-color);
-  border-radius: var(--panel-border-radius);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  position: absolute;
-  opacity: 0;
-  transition: all 0.3s ease-in-out;
-  left: 0;
-  right: 0;
-  top: 20px;
-  bottom: 0;
-  z-index: 1000;
-  pointer-events: none;
-
-  &.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
+  gap: 0.5rem;
+  width: 100%;
+  margin-block: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--panel-border-radius);
+  background: var(--panel-item-background-color);
 
   .progress-bar {
-    height:10px;
-    width: calc(100% - 20px);
+    grid-area: 2 / 1 / 3 / -1;
+    height: 0.5rem;
     border-radius: var(--panel-border-radius);
     background: var(--progress-bar-background-color);
-    margin-bottom: 10px;
-    
+
     .progress-bar-fill {
-      background: var(--progress-bar-fill-color);
-      border-radius: 5px;
-      transition: all 0.1s linear;
+      max-width: 100%;
       height: 100%;
+      border-radius: 5px;
+      background: var(--progress-bar-fill-color);
+      transition: width 0.1s linear;
     }
   }
-  
+
   .pause-button {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    
-    &:hover {
-      background: rgba(0, 0, 0, 0.2);
-    }
-    
-    svg {
-      width: 16px;
-      height: 16px;
-    }
+    grid-area: 1 / 2;
+    width: 44px;
+    height: 44px;
+    margin: 0;
   }
-  
+
   .progress-bar-text {
-    font-size: 24px;
-    color: var(--panel-text-color);
-    font-weight: 600;
-   
-    width: auto;
+    grid-area: 1 / 1;
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-width: 0;
+    color: var(--panel-text-color);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .progress-item {
+    flex: 1 1 auto;
+    padding: 0.25rem 0.375rem;
+    border-radius: var(--panel-border-radius);
+    background: var(--panel-section-background-color-alt);
     text-align: center;
-
-    padding: 10px;
-    border-radius: 5px;
-    
-    .progress-bar-text-sub {
-      font-size: 10px;
-      color: var(--panel-text-color);
-      opacity: 0.8;
-      font-weight: 400;
-    }
-
-    .progress-item {
-      font-size: 14px;
-      background: var(--panel-section-background-color-alt);
-      padding: 5px 20px;
-      border-radius: var(--panel-border-radius);
-      margin-right: 10px;
-      // Use tabular numbers so all digits have equal width (prevents jiggling)
-      font-variant-numeric: tabular-nums;
-      // Prevent layout shift by keeping items from shrinking
-      flex-shrink: 0;
-      text-align: center;
-      
-      &:last-child {
-        margin-right: 0;
-      }
-      
-      // Set minimum widths to accommodate typical max values
-      &.percentage-text {
-        min-width: 70px;
-      }
-      
-      &.upload-speed-text {
-        min-width: 110px;
-      }
-      
-      &.time-remaining-text {
-        min-width: 130px;
-      }
-      
-      &.file-name-text {
-        min-width: 70px;
-      }
-    }
   }
 }
 
 .recipients {
-  @include flex-row;
-  justify-content: flex-start;
-  gap: 10px;
+  display: grid;
+  gap: 0.625rem;
+  margin: 0 0.625rem 0.625rem;
+  padding: 0.625rem;
+  border-radius: var(--panel-border-radius);
   background: var(--input-background-color);
-  border-radius: 5px;
-  padding: 10px;
-  margin-bottom: 10px;
-  margin-left: 10px;
-  margin-right: 10px;
-  
-  .recipient-list {
-    @include flex-row;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 10px;
-    flex-grow: 1;
+
+  .recipient-toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+    align-items: stretch;
+    gap: 0.5rem;
     min-width: 0;
-    min-height: 30px;
   }
 
+  .uploader-add-recipient,
   .saved-recipient-select {
-    width: auto;
-    max-width: 100%;
-    height: 30px;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
     margin: 0;
-    padding: 4px 30px 4px 8px;
-    font-size: 0.8rem;
+    line-height: 1.25;
+  }
+
+  .uploader-add-recipient {
+    padding: 0.5rem;
+    svg {
+      flex: none;
+    }
+  }
+
+  .recipient-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+
   }
 
   .recipient-list-empty {
-    @include flex-row;
-    justify-content: center;
-    gap: 10px;
-    font-size: 0.7rem;
-    color: var(--panel-text-color);
     width: 100%;
-    flex-grow: 1;
-    font-style: italic;
-    
-    svg {
-      width: 13px;
-      height: 13px;
+    color: var(--panel-text-color);
+    font-size: 0.875rem;
+    text-align: center;
+
+    small {
+      display: block;
     }
   }
 }
@@ -366,79 +320,53 @@
 .expiry-settings-container {
   width: 100%;
   background: var(--uploader-header-background-color);
-  @include blur-background(10px);
   color: var(--uploader-header-text-color);
   text-align: center;
 
   .expiry-label {
-    font-size: 0.8rem;
-    color: var(--panel-text-color);
-    font-weight: 200;
-    cursor: pointer;
-    user-select: none;
-    display: block;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    
+    min-height: 44px;
+    height: auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.5rem;
+    background: transparent;
+    color: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25;
+
     &:hover {
       color: var(--link-color-hover);
     }
-    
+
     svg {
-      width: 12px;
-      height: 12px;
-      margin-right: 5px;
-      margin-top: -2px;
+      flex: none;
+      width: 1rem;
+      height: 1rem;
+      margin: 0 0.375rem 0 0;
     }
   }
 
   .expiry-settings {
-    position: relative;
-    overflow: hidden;
-    max-height: 0;
-    transition: all 0.3s ease-in-out;
-    width: 100%;
-    @include flex-row;
-    justify-content: flex-start;
-    gap: 1px;
-    
-    &.visible {
-      max-height: 50px;
-    }
-    
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+
     input,
-    textarea,
     select {
-      border-radius: 0 !important;
-      border: none;
-      display: block;
+      flex: 1 1 6rem;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
       margin: 0;
     }
 
-    input[type='number'] {
-      text-align: right;
-      
-      &::-webkit-inner-spin-button,
-      &::-webkit-outer-spin-button {
-        opacity: 0;
-        -moz-appearance: textfield;
-        appearance: textfield;
-        pointer-events: none;
-      }
-    }
-
-    .maxValueOverlay {
-      position: absolute;
-      left: 20px;
-      padding: 5px;
-      border-radius: 5px;
+    .max-expiry {
+      flex-basis: 100%;
       font-size: 0.8rem;
-      opacity: 0.5;
     }
   }
 }
-
-
 
 .dropzone {
   transition: all 0.3s ease;

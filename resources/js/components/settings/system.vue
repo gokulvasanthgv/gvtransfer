@@ -1,4 +1,5 @@
 <script setup>
+import SettingsSectionLinks from '../settingsSectionLinks.vue'
 import { ref, onMounted, defineExpose, inject, computed, nextTick, watch } from 'vue'
 import {
   Settings,
@@ -496,8 +497,8 @@ const handleDeleteAuthProvider = async (id) => {
 <template>
   <div class="container-fluid">
     <div class="row mb-5">
-      <div class="col-2 d-none d-md-block">
-        <ul class="settings-nav pt-5">
+      <SettingsSectionLinks class="col-12 col-lg-2">
+        <ul class="settings-nav">
           <li>
             <a href="#" @click.prevent="handleNavItemClicked('general')">
               <Settings />
@@ -535,10 +536,10 @@ const handleDeleteAuthProvider = async (id) => {
             </a>
           </li>
         </ul>
-      </div>
-      <div class="col-12 col-md-8 pt-5">
+      </SettingsSectionLinks>
+      <div class="col-12 col-lg-8 pt-3">
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="general">
               <div class="setting-group-header">
                 <h3>
@@ -595,7 +596,7 @@ const handleDeleteAuthProvider = async (id) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.system.application_name') }}</h6>
               <p>{{ $t('settings.system.application_name_description') }}</p>
@@ -616,7 +617,7 @@ const handleDeleteAuthProvider = async (id) => {
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="shares">
               <div class="setting-group-header">
                 <h3>
@@ -720,7 +721,7 @@ const handleDeleteAuthProvider = async (id) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.system.max_expiry_time') }}</h6>
               <p>{{ $t('settings.system.max_expiry_time_description') }}</p>
@@ -753,7 +754,7 @@ const handleDeleteAuthProvider = async (id) => {
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="emails">
               <div class="setting-group-header">
                 <h3>
@@ -830,7 +831,7 @@ const handleDeleteAuthProvider = async (id) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.system.enable_share_downloaded_emails') }}</h6>
               <p>{{ $t('settings.system.share_downloaded_emails_description') }}</p>
@@ -851,7 +852,7 @@ const handleDeleteAuthProvider = async (id) => {
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="smtp">
               <div class="setting-group-header">
                 <h3>
@@ -900,7 +901,7 @@ const handleDeleteAuthProvider = async (id) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.system.smtp_host') }}</h6>
               <p>{{ $t('settings.system.smtp_host_description') }}</p>
@@ -927,7 +928,7 @@ const handleDeleteAuthProvider = async (id) => {
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="auth">
               <div class="setting-group-header">
                 <h3>
@@ -1157,7 +1158,7 @@ const handleDeleteAuthProvider = async (id) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.system.self_registration') }}</h6>
               <p>{{ $t('settings.system.self_registration_description') }}</p>
@@ -1174,7 +1175,7 @@ const handleDeleteAuthProvider = async (id) => {
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="backups">
               <div class="setting-group-header">
                 <h3>
@@ -1259,7 +1260,7 @@ const handleDeleteAuthProvider = async (id) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.system.backups.title') }}</h6>
               <p>{{ $t('settings.system.backups.description') }}</p>

@@ -1,12 +1,11 @@
 <script setup>
-import { ref, onMounted, inject, defineExpose } from 'vue'
+import { ref, onMounted, defineExpose } from 'vue'
 import { getMyShares, expireShare, extendShare, setDownloadLimit, pruneExpiredShares } from '../../api'
 import {
   SquareArrowOutUpRight,
   CalendarPlus,
   CalendarX2,
   HardDriveDownload,
-  MessageCircleQuestion,
   Rocket,
   Lock,
   LockOpen,
@@ -14,13 +13,9 @@ import {
 } from 'lucide-vue-next'
 import { useToast } from 'vue-toastification'
 import { niceFileSize, niceDate, niceFileName, niceNumber } from '../../utils'
-import HelpTip from '../helpTip.vue'
 import { useTranslate } from '@tolgee/vue'
 
 const { t } = useTranslate()
-
-const showHelpTip = inject('showHelpTip')
-const hideHelpTip = inject('hideHelpTip')
 
 const toast = useToast()
 const maxFilesToShow = 4
@@ -124,141 +119,144 @@ defineExpose({
 
 <template>
   <div>
-    <HelpTip id="download-limit-help-tip" :header="$t('settings.help.downloadLimit.title')">
+    <details v-if="shares.length" class="table-help">
+      <summary>{{ $t('settings.help.downloadLimit.title') }}</summary>
       <p>
         {{ $t('settings.help.downloadLimit.description') }}
       </p>
       <p>
         {{ $t('settings.help.downloadLimit.description2') }}
       </p>
-    </HelpTip>
-    <table v-if="shares.length > 0">
-      <thead>
-        <tr>
-          <th>{{ $t('settings.table.name') }}</th>
-          <th>{{ $t('settings.table.files') }}</th>
-          <th>
-            {{ $t('settings.table.downloads') }}
-            <MessageCircleQuestion @click.stop="showHelpTip($event, '#download-limit-help-tip')" />
-          </th>
-          <th>{{ $t('settings.table.dates') }}</th>
-          <th>{{ $t('settings.table.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="share in shares" :key="share.id" :class="{ 'reverse-share': share.shared_with_me }">
-          <td width="1" style="white-space: nowrap">
-            <div class="slide-text">
-              <strong class="content">
-                <ArrowLeftRight v-if="share.shared_with_me" class="reverse-share-icon" />
-                {{ share.name }}
-              </strong>
-            </div>
-            <a :href="`/shares/${share.long_id}`" target="_blank" class="share_long_id">
-              <SquareArrowOutUpRight />
-              {{ share.long_id }}
-            </a>
-            <div class="protection-status">
-              <template v-if="share.password_protected">
-                <Lock />
-                {{ $t('share.passwordProtected') }}
-              </template>
-              <template v-else>
-                <LockOpen />
-                {{ $t('share.passwordNotProtected') }}
-              </template>
-            </div>
-          </td>
-          <td style="vertical-align: top">
-            <h6 class="file-count">
-              {{ $t('share.files.count', { count: share.files.length, value: share.files.length }) }}
-              <template v-if="share.files.length > maxFilesToShow">
-                {{ $t('share.files.including') }}
-              </template>
-            </h6>
-            <div class="files-container pt-1">
-              <div class="file" v-for="file in share.files.slice(0, maxFilesToShow)" :key="file.id">
-                <div class="file-name" :title="file.name">{{ niceFileName(file.name) }}</div>
-                <div class="file-size">
-                  {{ niceFileSize(file.size) }}
+    </details>
+    <div v-if="shares.length > 0" class="settings-table-container">
+      <table class="settings-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">{{ $t('settings.table.name') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.table.files') }}</th>
+            <th scope="col" role="columnheader">
+              {{ $t('settings.table.downloads') }}
+
+            </th>
+            <th scope="col" role="columnheader">{{ $t('settings.table.dates') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.table.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row" v-for="share in shares" :key="share.id" :class="{ 'reverse-share': share.shared_with_me }">
+            <td role="cell" :data-label="$t('settings.table.name')" width="1" style="white-space: nowrap">
+              <div class="slide-text">
+                <strong class="content">
+                  <ArrowLeftRight v-if="share.shared_with_me" class="reverse-share-icon" />
+                  {{ share.name }}
+                </strong>
+              </div>
+              <a :href="`/shares/${share.long_id}`" target="_blank" class="share_long_id">
+                <SquareArrowOutUpRight />
+                {{ share.long_id }}
+              </a>
+              <div class="protection-status">
+                <template v-if="share.password_protected">
+                  <Lock />
+                  {{ $t('share.passwordProtected') }}
+                </template>
+                <template v-else>
+                  <LockOpen />
+                  {{ $t('share.passwordNotProtected') }}
+                </template>
+              </div>
+            </td>
+            <td role="cell" :data-label="$t('settings.table.files')" style="vertical-align: top">
+              <h6 class="file-count">
+                {{ $t('share.files.count', { count: share.files.length, value: share.files.length }) }}
+                <template v-if="share.files.length > maxFilesToShow">
+                  {{ $t('share.files.including') }}
+                </template>
+              </h6>
+              <div class="files-container pt-1">
+                <div class="file" v-for="file in share.files.slice(0, maxFilesToShow)" :key="file.id">
+                  <div class="file-name" :title="file.name">{{ niceFileName(file.name) }}</div>
+                  <div class="file-size">
+                    {{ niceFileSize(file.size) }}
+                  </div>
+                </div>
+                <div class="some-more" v-if="share.files.length > maxFilesToShow">
+                  <span>And {{ share.files.length - maxFilesToShow }} more</span>
                 </div>
               </div>
-              <div class="some-more" v-if="share.files.length > maxFilesToShow">
-                <span>And {{ share.files.length - maxFilesToShow }} more</span>
+            </td>
+            <td role="cell" :data-label="$t('settings.table.downloads')" width="1" style="white-space: nowrap" class="text-center">
+              <div class="download_limit_manager">
+                <div class="limit-label">{{ $t('limit') }}</div>
+                <div class="download_count">
+                  <label class="count_label">{{ $t('settings.table.downloads') }}</label>
+                  {{ niceNumber(share.download_count) }}
+                  <span>/</span>
+                </div>
+                <input
+                  class="download_limit_input"
+                  v-model="share.download_limit"
+                  @change="handleDownloadLimitChange(share)"
+                  placeholder="∞"
+                />
               </div>
-            </div>
-          </td>
-          <td width="1" style="white-space: nowrap" class="text-center">
-            <div class="download_limit_manager">
-              <div class="limit-label">{{ $t('limit') }}</div>
-              <div class="download_count">
-                <label class="count_label">{{ $t('settings.table.downloads') }}</label>
-                {{ niceNumber(share.download_count) }}
-                <span>/</span>
+            </td>
+            <td role="cell" :data-label="$t('settings.table.dates')" width="1" style="white-space: nowrap">
+              <div class="date-container">
+                <div class="date">
+                  <span>{{ $t('share.created') }}:</span>
+                  {{ niceDate(share.created_at) }}
+                </div>
+                <div class="date">
+                  <span>{{ $t('share.expires') }}:</span>
+                  <template v-if="share.expired">
+                    <strong class="ps-1 text-danger">{{ $t('share.expired') }}</strong>
+                  </template>
+                  <template v-else>
+                    {{ niceDate(share.expires_at) }}
+                  </template>
+                </div>
+                <div class="date">
+                  <span>{{ $t('share.deletes') }}:</span>
+                  <template v-if="share.deleted">
+                    <strong class="ps-1 text-danger">{{ $t('share.deleted') }}</strong>
+                  </template>
+                  <template v-else>
+                    {{ niceDate(share.deletes_at) }}
+                  </template>
+                </div>
               </div>
-              <input
-                class="download_limit_input"
-                v-model="share.download_limit"
-                @change="handleDownloadLimitChange(share)"
-                placeholder="∞"
-              />
-            </div>
-          </td>
-          <td width="1" style="white-space: nowrap">
-            <div class="date-container">
-              <div class="date">
-                <span>{{ $t('share.created') }}:</span>
-                {{ niceDate(share.created_at) }}
-              </div>
-              <div class="date">
-                <span>{{ $t('share.expires') }}:</span>
-                <template v-if="share.expired">
-                  <strong class="ps-1 text-danger">{{ $t('share.expired') }}</strong>
-                </template>
-                <template v-else>
-                  {{ niceDate(share.expires_at) }}
-                </template>
-              </div>
-              <div class="date">
-                <span>{{ $t('share.deletes') }}:</span>
-                <template v-if="share.deleted">
-                  <strong class="ps-1 text-danger">{{ $t('share.deleted') }}</strong>
-                </template>
-                <template v-else>
-                  {{ niceDate(share.deletes_at) }}
-                </template>
-              </div>
-            </div>
-          </td>
-          <td width="1" style="white-space: nowrap">
-            <button
-              @click="handleExpireShareClick(share)"
-              class="clear-button"
-              :disabled="!enableExpireShareButton(share)"
-            >
-              <CalendarX2 />
-              {{ $t('share.button.expireNow') }}
-            </button>
-            <button
-              @click="handleExtendShareClick(share)"
-              class="secondary"
-              :disabled="!enableExtendShareButton(share)"
-            >
-              <CalendarPlus />
-              {{ $t('share.button.extend') }}
-            </button>
-            <button
-              @click="downloadShare(share)"
-              class="secondary icon-only"
-              title="Download all files"
-              :disabled="!enableDownloadButton(share)"
-            >
-              <HardDriveDownload style="margin-right: 0" />
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            </td>
+            <td role="cell" :data-label="$t('settings.table.actions')" width="1" style="white-space: nowrap">
+              <button
+                @click="handleExpireShareClick(share)"
+                class="clear-button"
+                :disabled="!enableExpireShareButton(share)"
+              >
+                <CalendarX2 />
+                {{ $t('share.button.expireNow') }}
+              </button>
+              <button
+                @click="handleExtendShareClick(share)"
+                class="secondary"
+                :disabled="!enableExtendShareButton(share)"
+              >
+                <CalendarPlus />
+                {{ $t('share.button.extend') }}
+              </button>
+              <button
+                @click="downloadShare(share)"
+                class="secondary icon-only"
+                title="Download all files"
+                :disabled="!enableDownloadButton(share)"
+              >
+                <HardDriveDownload style="margin-right: 0" />
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <div v-else-if="loadedShares" class="center-message">
       <Rocket />
       <p>{{ $t('settings.noShares') }}</p>

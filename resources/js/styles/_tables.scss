@@ -38,3 +38,119 @@ table {
     }
   }
 }
+
+.settings-table-container {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  container-type: inline-size;
+}
+
+.table-help {
+  margin: 0.5rem var(--page-gutter);
+  padding: 0.5rem;
+  background: var(--panel-section-background-color);
+  border-radius: var(--panel-border-radius);
+
+  summary {
+    width: fit-content;
+    min-height: 44px;
+    padding-block: 0.625rem;
+    cursor: pointer;
+  }
+}
+
+@mixin stack-settings-table {
+  .settings-table {
+    display: block;
+    background: transparent;
+
+    thead {
+      position: absolute;
+      clip-path: inset(50%);
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+
+    tbody {
+      display: grid;
+      gap: 0.625rem;
+      padding: var(--page-gutter);
+      background: transparent;
+    }
+
+    tbody tr {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+      border-radius: var(--panel-border-radius);
+    }
+
+    td {
+      display: block;
+      min-width: 0;
+      width: auto;
+      border: 0;
+      padding: 0.625rem;
+      text-align: start !important;
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+
+      &::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+
+      &:first-child,
+      &:last-child {
+        grid-column: 1 / -1;
+      }
+
+      &:last-child {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.375rem;
+
+        &::before {
+          flex-basis: 100%;
+        }
+      }
+
+      button {
+        max-width: 100%;
+        min-height: 44px;
+        height: auto;
+        margin: 0;
+        padding-block: 0.5rem;
+        line-height: 1.25;
+
+        svg {
+          flex: none;
+        }
+      }
+
+      .file-count {
+        margin: 0;
+      }
+
+      .date-item,
+      .tags {
+        flex-wrap: wrap;
+      }
+    }
+  }
+}
+
+@container (max-width: 56rem) {
+  @include stack-settings-table;
+}
+
+@supports not (container-type: inline-size) {
+  @media (max-width: 56rem) {
+    @include stack-settings-table;
+  }
+}

@@ -1,194 +1,111 @@
 <script setup>
-import { ref, computed, useSlots, onMounted, onUnmounted } from 'vue'
+import { computed, ref, useSlots } from 'vue'
 
-const props = defineProps({
-  items: {
-    type: Array,
-    required: true
-  },
-  secondary: {
-    type: Boolean,
-    default: true
-  },
-  direction: {
-    type: String,
-    default: 'bottom right'
-  }
+defineProps({
+  items: { type: Array, required: true },
+  secondary: { type: Boolean, default: true },
+  label: String
 })
 
-// Get access to the slots
 const slots = useSlots()
+const iconOnly = computed(() => !slots.label)
+const menu = ref(null)
+const trigger = ref(null)
 
-// Check if the label slot exists
-const iconOnly = computed(() => {
-  return !slots.label
-})
-
-const visible = ref(false)
-
-const toggleMenu = () => {
-  visible.value = !visible.value
-
-  //has the menu gone out of the screen?
-  const menu = document.querySelector('.button-with-menu-dropdown')
-  const menuRect = menu.getBoundingClientRect()
-  const screenWidth = window.innerWidth
-  const screenHeight = window.innerHeight
-
-  // if (menuRect.right > screenWidth) {
-  //   menu.style.left = `${screenWidth - menuRect.right}px`
-  // }
-
-  // if (menuRect.bottom > screenHeight) {
-  //   menu.style.top = `${screenHeight - menuRect.bottom}px`
-  // }
-
-  // //is the menu off the left side of the screen?
-  // if (menuRect.left < 0) {
-  //   menu.style.left = `${menuRect.left}px`
-  // }
-
-  // //is the menu off the top side of the screen?
-  // if (menuRect.top < 0) {
-  //   menu.style.top = `${menuRect.top}px`
-  // }
+const closeMenu = (restoreFocus = false) => {
+  if (!menu.value.open) return
+  menu.value.open = false
+  if (restoreFocus) trigger.value?.focus()
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
-
-const handleClickOutside = (event) => {
-  if (!event.target.closest('.button-with-menu')) {
-    visible.value = false
-  }
+const choose = (item) => {
+  closeMenu(true)
+  item.action?.()
 }
 
-const handleItemClick = (item) => {
-  if (typeof item.action === 'function') {
-    item.action()
-  }
-  visible.value = false
+const handleEscape = (event) => {
+  if (!menu.value.open) return
+  event.stopPropagation()
+  closeMenu(true)
 }
 </script>
 
 <template>
-  <div class="button-with-menu" :class="direction">
-    <button :class="{ 'icon-only': iconOnly, secondary: secondary }" @click="toggleMenu">
+  <details class="button-with-menu" ref="menu" @keydown.esc="handleEscape">
+    <summary
+      ref="trigger"
+      :class="{ 'icon-only': iconOnly, secondary: secondary }"
+      :aria-label="label || (iconOnly ? $t('navigation.more_actions', 'More actions') : undefined)"
+    >
       <slot name="icon" />
       <slot name="label" />
-    </button>
-    <div class="button-with-menu-dropdown" :class="{ visible: visible }">
-      <div
-        class="button-with-menu-dropdown-item"
-        v-for="item in items"
-        :key="item.label"
-        @click="handleItemClick(item)"
-      >
-        <Component :is="item.icon" />
+    </summary>
+    <div class="button-with-menu-options">
+      <button v-for="item in items" :key="item.label" type="button" class="secondary" @click="choose(item)">
+        <Component :is="item.icon" v-if="item.icon" />
         {{ item.label }}
-      </div>
+      </button>
     </div>
-  </div>
+  </details>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .button-with-menu {
-  display: inline-block;
-  position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.button-with-menu-dropdown {
-  position: absolute;
-  top: calc(100% + 5px);
-  right: 0;
-  background: var(--panel-item-background-color);
-  padding: 0;
+summary,
+.button-with-menu-options button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 44px;
+  height: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--button-border-radius);
+  line-height: 1.25;
+  text-align: start;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  svg {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+  }
+}
+
+summary {
+  width: fit-content;
+  background: var(--primary-button-background-color);
+  color: var(--primary-button-text-color);
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &.secondary {
+    background: var(--secondary-button-background-color);
+    color: var(--secondary-button-text-color);
+  }
+
+  &.icon-only {
+    min-width: 44px;
+    justify-content: center;
+  }
+}
+
+.button-with-menu-options {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  border-radius: 5px;
-  z-index: 100;
-  opacity: 0;
-  filter: blur(10px);
-  transition: all 0.3s ease-in-out;
-  transform: translateY(-10px);
-  pointer-events: none;
-
-  &.visible {
-    opacity: 1;
-    filter: blur(0px);
-    transform: translateY(0px);
-    pointer-events: auto;
-  }
-
-  .button-with-menu-dropdown-item {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    padding: 10px 10px;
-    border-radius: 5px;
-    margin: 0;
-    color: var(--panel-text-color);
-    white-space: nowrap;
-
-    svg {
-      width: 15px;
-      height: 15px;
-      margin-top: 0px;
-    }
-
-    &.active {
-      background: var(--primary-button-background-color);
-      color: var(--primary-button-text-color);
-    }
-
-    &:hover {
-      background: var(--primary-button-background-color-hover);
-      color: var(--primary-button-text-color-hover);
-    }
-
-    span.fi {
-      border-radius: 5px;
-      width: 15px;
-      margin-top: -1px;
-    }
-  }
-
-  &.top {
-    .button-with-menu-dropdown-item {
-      top: auto;
-      bottom: calc(100% + 5px);
-    }
-  }
-
-  &.left {
-    .button-with-menu-dropdown-item {
-      right: auto;
-      left: 0;
-    }
-  }
-
-  &.right {
-    .button-with-menu-dropdown-item {
-      left: auto;
-      right: 0;
-    }
-  }
-
-  &.bottom {
-    .button-with-menu-dropdown-item {
-      top: auto;
-      bottom: calc(100% + 5px);
-    }
-  }
+  gap: 0.25rem;
+  padding-block-start: 0.25rem;
 }
 </style>

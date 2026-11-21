@@ -16,67 +16,40 @@ import fr from './i18n/fr.json'
 import it from './i18n/it.json'
 import nl from './i18n/nl.json'
 import pt from './i18n/pt.json'
-let clickOutsideEvent = null
+let activeHelpTip = null
 
-const showHelpTip = (event, helpTipId) => {
-  const helpTip = document.querySelector(helpTipId)
-  const cssShiftAmount = -15
-  if (!helpTip) return
-
-  helpTip.classList.add('no-transition')
-  
-  // Calculate initial position
-  let top = event.clientY - helpTip.offsetHeight - 10
-  let left = event.clientX - helpTip.offsetWidth / 2
-
-  // Check top boundary - account for the shift amount
-  if (top + cssShiftAmount < 0) {
-    top = -cssShiftAmount // This ensures the tip is at the very top after the shift is applied
-  }
-  
-  // Check left boundary
-  if (left < 0) {
-    left = 0
-  }
-  
-  // Check right boundary
-  if (left + helpTip.offsetWidth > window.innerWidth) {
-    left = window.innerWidth - helpTip.offsetWidth
-  }
-  
-  // Check bottom boundary - account for the shift amount
-  if (top + cssShiftAmount + helpTip.offsetHeight > window.innerHeight) {
-    top = window.innerHeight - helpTip.offsetHeight - cssShiftAmount
-  }
-
-  // Apply the position
-  helpTip.style.top = `${top}px`
-  helpTip.style.left = `${left}px`
-
-  // Make the tooltip visible with a slight delay
-  setTimeout(() => {
-    helpTip.classList.remove('no-transition')
-    helpTip.classList.add('visible')
-    helpTip.classList.add('shifted-up')
-  }, 1)
-
-  // Register click-outside event to hide the tooltip
-  clickOutsideEvent = document.addEventListener('click', (event) => {
-    if (!helpTip.contains(event.target)) {
-      hideHelpTip(helpTipId)
-    }
-  })
+const closeHelpTip = () => {
+  activeHelpTip?.classList.remove('visible')
+  activeHelpTip = null
+  document.removeEventListener('click', closeHelpTipOutside)
+  window.removeEventListener('resize', closeHelpTip)
 }
 
-const hideHelpTip = (helpTipId) => {
-  const helpTip = document.querySelector(helpTipId)
-  if (!helpTip) return
+const closeHelpTipOutside = (event) => {
+  if (!activeHelpTip?.contains(event.target)) closeHelpTip()
+}
 
-  helpTip.classList.remove('visible')
-  helpTip.classList.remove('shifted-up')
+const showHelpTip = (event, selector) => {
+  const tip = document.querySelector(selector)
+  if (!tip) return
+  closeHelpTip()
+  activeHelpTip = tip
 
-  //unregister click-outside event
-  document.removeEventListener('click', clickOutsideEvent)
+  const { top, bottom, left, width } = event.currentTarget.getBoundingClientRect()
+  const inset = 8
+  const x = Math.min(Math.max(inset, left + (width - tip.offsetWidth) / 2), window.innerWidth - tip.offsetWidth - inset)
+  const nextTop = top >= tip.offsetHeight + inset ? top - tip.offsetHeight - inset : bottom + inset
+  const y = Math.max(inset, Math.min(nextTop, window.innerHeight - tip.offsetHeight - inset))
+  tip.style.left = `${x}px`
+  tip.style.top = `${y}px`
+  tip.classList.add('visible')
+
+  document.addEventListener('click', closeHelpTipOutside)
+  window.addEventListener('resize', closeHelpTip)
+}
+
+const hideHelpTip = (selector) => {
+  if (document.querySelector(selector) === activeHelpTip) closeHelpTip()
 }
 
 //use a mutation observer to recursively watch the dom for any .slide-text elements that might appear

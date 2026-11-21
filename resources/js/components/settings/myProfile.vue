@@ -1,4 +1,5 @@
 <script setup>
+import SettingsSectionLinks from '../settingsSectionLinks.vue'
 import { ref, onMounted, defineExpose, nextTick } from 'vue'
 import { getMyProfile, updateMyProfile, getAvailableAuthProviders, unlinkProvider } from '../../api'
 import { User, CircleX, UserRoundCheck, UserRoundPen, Fingerprint, Link, Unlink } from 'lucide-vue-next'
@@ -163,8 +164,8 @@ const handleUnlinkProvider = async (provider) => {
 <template>
   <div class="container-fluid" v-if="profile">
     <div class="row mb-5">
-      <div class="col-2 d-none d-md-block">
-        <ul class="settings-nav pt-5">
+      <SettingsSectionLinks class="col-12 col-lg-2">
+        <ul class="settings-nav">
           <li>
             <a href="#" @click.prevent="handleNavItemClicked('my_account')">
               <User />
@@ -178,10 +179,10 @@ const handleUnlinkProvider = async (provider) => {
             </a>
           </li>
         </ul>
-      </div>
-      <div class="col-12 col-md-8 pt-5">
+      </SettingsSectionLinks>
+      <div class="col-12 col-lg-8 pt-3">
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="my_account">
               <div class="setting-group-header">
                 <h3>
@@ -223,7 +224,7 @@ const handleUnlinkProvider = async (provider) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.title.myProfile') }}</h6>
               <p>{{ $t('settings.account.myProfile_description') }}</p>
@@ -232,7 +233,7 @@ const handleUnlinkProvider = async (provider) => {
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="linked_accounts">
               <div class="setting-group-header">
                 <h3>
@@ -278,7 +279,7 @@ const handleUnlinkProvider = async (provider) => {
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.title.linked_accounts') }}</h6>
               <p>{{ $t('settings.account.linked_accounts_description') }}</p>
@@ -352,7 +353,7 @@ const handleUnlinkProvider = async (provider) => {
 
 <style lang="scss" scoped>
 .profile-card {
-  width: 450px;
+  width: min(100%, 28rem);
   border-radius: 10px;
   background: var(--panel-item-background-color);
 
@@ -361,7 +362,7 @@ const handleUnlinkProvider = async (provider) => {
     border-radius: 8px 8px 0 0;
     padding-left: 20px;
     padding-right: 20px;
-    height: 80px;
+    min-height: 80px;
     display: flex;
     align-items: center;
     justify-content: flex-start;

@@ -30,8 +30,10 @@ import DirectoryItem from './directory-item.vue'
 const { t } = useTranslate()
 const toast = useToast()
 const fileInput = ref(null)
+const supportsFolderPicker = 'webkitdirectory' in HTMLInputElement.prototype
 const sharePanelVisible = ref(false)
 const shareUrl = ref('')
+const shareUrlInput = ref(null)
 const currentlyUploading = ref(false)
 const uploadBasket = ref([])
 const maxShareSize = ref(0)
@@ -105,6 +107,8 @@ const passwordFormErrors = ref({
 })
 
 const recipients = ref([])
+const editingRecipientId = ref(null)
+const addRecipientButton = ref(null)
 const savedRecipients = ref([])
 const savedRecipientsLabel = computed(() => t.value('uploader.saved_recipients', 'Saved recipients'))
 const recipientOwnerId = computed(() => (store.isLoggedIn() && !store.isGuest() ? store.userId : null))
@@ -136,6 +140,7 @@ watch(recipientOwnerId, () => {
   savedRecipientsRequest?.abort()
   savedRecipients.value = []
   recipients.value = []
+  editingRecipientId.value = null
   refreshSavedRecipients()
 }, { immediate: true })
 
@@ -218,11 +223,13 @@ onMounted(async () => {
 })
 
 const showFilePicker = () => {
+  if (currentlyUploading.value) return
   fileInput.value.webkitdirectory = false
   fileInput.value.click()
 }
 
 const showFolderPicker = () => {
+  if (currentlyUploading.value) return
   fileInput.value.webkitdirectory = true
   fileInput.value.click()
 }
@@ -237,8 +244,13 @@ const handleDrop = (e) => {
   e.preventDefault()
   e.stopPropagation()
   dropBoxRemoveActiveClass()
+  if (currentlyUploading.value) return
 
-  const items = e.dataTransfer.items || []
+  const items = e.dataTransfer.items
+  if (!items?.length) {
+    for (const file of e.dataTransfer.files) pushFile(file)
+    return
+  }
 
   for (const item of items) {
     if (item.kind === 'file') {
@@ -528,6 +540,7 @@ const doTusUpload = async (uploadId, shareRecipients, userId) => {
           }
         }
         recipients.value = []
+        editingRecipientId.value = null
         uploadBasket.value = []
         shareName.value = ''
         shareDescription.value = ''
@@ -596,25 +609,46 @@ const showSharePanel = (url) => {
 
 const showCopySuccess = ref(false)
 
-const copyShareUrl = () => {
-  navigator.clipboard.writeText(shareUrl.value)
+const copyShareUrl = async () => {
+  const input = shareUrlInput.value
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl.value)
+    } else {
+      input?.select()
+      if (!document.execCommand('copy')) return
+    }
+  } catch {
+    input?.select()
+    return
+  }
   showCopySuccess.value = true
   setTimeout(() => {
     showCopySuccess.value = false
   }, 1000)
 }
 
-const removeRecipient = (recipient) => {
+const removeRecipient = async (recipient) => {
   recipients.value = recipients.value.filter((item) => item.id !== recipient.id)
+  if (editingRecipientId.value === recipient.id) editingRecipientId.value = null
+  await nextTick()
+  addRecipientButton.value?.focus({ preventScroll: true })
+}
+
+const editRecipient = (recipient) => {
+  recipients.value = recipients.value.filter(({ id, name, email }) => id === recipient.id || name || email)
+  editingRecipientId.value = recipient.id
+}
+
+const closeRecipient = (recipient) => {
+  editingRecipientId.value = null
+  if (!recipient.name && !recipient.email) removeRecipient(recipient)
 }
 
 const addRecipient = () => {
-  recipients.value.push({
-    id: simpleUUID(),
-    email: '',
-    name: '',
-    showPopover: true
-  })
+  const recipient = { id: simpleUUID(), email: '', name: '' }
+  recipients.value.push(recipient)
+  editRecipient(recipient)
 }
 
 const addSavedRecipient = ({ target }) => {
@@ -823,7 +857,6 @@ const dropBoxRemoveActiveClass = (e) => {
 }
 
 const handleDropzoneClick = (e) => {
-  console.log(e)
   if (e.target === dropzone.value) {
     showFilePicker()
   }
@@ -877,11 +910,17 @@ const filesByDirectory = computed(() => {
 <template>
   <div class="upload-form">
     <div class="buttons">
-      <button class="upload-files block text-large" @click="showFilePicker">
+      <button type="button" class="upload-files" :disabled="currentlyUploading" @click="showFilePicker">
         <FilePlus />
         {{ $t('Add Files') }}
       </button>
-      <button class="upload-folder block text-large secondary" @click="showFolderPicker">
+      <button
+        v-if="supportsFolderPicker"
+        type="button"
+        class="upload-folder secondary"
+        :disabled="currentlyUploading"
+        @click="showFolderPicker"
+      >
         <FolderPlus />
         {{ $t('Add Folders') }}
       </button>
@@ -889,7 +928,7 @@ const filesByDirectory = computed(() => {
     <div class="max-size-label">{{ niceFileSize(totalSize) }} / {{ niceFileSize(maxShareSize) }}</div>
 
 
-      <div class="progress-bar-container" :class="{ visible: currentlyUploading }">
+      <div v-if="currentlyUploading" class="progress-bar-container">
 
         <div class="progress-bar-text">
           <template v-if="uploadProgress < 100">
@@ -912,49 +951,57 @@ const filesByDirectory = computed(() => {
           </template>
         </div>
 
-        <div class="progress-bar">
+        <div
+          class="progress-bar"
+          role="progressbar"
+          :aria-label="$t('uploader.upload_progress', 'Upload progress')"
+          :aria-valuenow="Math.round(uploadProgress)"
+        >
           <div class="progress-bar-fill" :style="{ width: `${uploadProgress}%` }"></div>
         </div>
-        <div class="pause-button" @click="togglePause">
+        <button
+          type="button"
+          class="pause-button icon-only secondary"
+          :aria-label="isPaused ? $t('uploader.resume_upload', 'Resume upload') : $t('uploader.pause_upload', 'Pause upload')"
+          @click="togglePause"
+        >
           <Pause v-if="!isPaused" />
           <Play v-else />
-        </div>
+        </button>
       </div>
 
   </div>
   <div class="expiry-settings-container">
-    <span class="expiry-label" @click="toggleExpirySettings">
+    <button type="button" class="expiry-label" :aria-expanded="showExpirySettings" @click="toggleExpirySettings">
       <Clock9 />
       {{ $t('uploader.expiry_label', { value: expiryValue, unit: t('uploader.expiry_unit.' + expiryUnit) }) }}
-    </span>
-    <div class="expiry-settings" :class="{ visible: showExpirySettings }">
-      <input type="number" v-model="expiryValue" />
-      <span class="maxValueOverlay" v-if="maxExpiryTimeInSelectedUnit != null">
-        {{ t('uploader.expiry_max_value', { value: RoundedMaxExpiryTimeInSelectedUnit }) }}
-      </span>
-      <select v-model="expiryUnit">
+    </button>
+    <div class="expiry-settings" v-if="showExpirySettings">
+      <input type="number" v-model="expiryValue" :aria-label="$t('uploader.expiry_amount', 'Expiry amount')" />
+      <select v-model="expiryUnit" :aria-label="$t('uploader.expiry_interval', 'Expiry unit')">
         <option value="days">{{ $t('uploader.expiry_unit.days') }}</option>
         <option value="weeks" v-if="canExpireInWeeks">{{ $t('uploader.expiry_unit.weeks') }}</option>
         <option value="months" v-if="canExpireInMonths">{{ $t('uploader.expiry_unit.months') }}</option>
         <option value="years" v-if="canExpireInYears">{{ $t('uploader.expiry_unit.years') }}</option>
       </select>
+      <span class="max-expiry" v-if="maxExpiryTimeInSelectedUnit != null">
+        {{ t('uploader.expiry_max_value', { value: RoundedMaxExpiryTimeInSelectedUnit }) }}
+      </span>
     </div>
   </div>
   <div class="upload-basket-details pt-2">
     <div class="recipients" v-if="!store.isGuest()">
-      <div class="button-outside-label uploader-add-recipient">
+      <div class="recipient-toolbar">
         <button
           type="button"
-          class="icon-only round"
-          :aria-label="$t('Add Recipient')"
+          class="uploader-add-recipient secondary"
+          ref="addRecipientButton"
           :disabled="currentlyUploading"
           @click="addRecipient"
         >
           <Plus />
+          {{ $t('Add Recipient') }}
         </button>
-        <div class="button-outside-label-text">{{ $t('Add Recipient') }}</div>
-      </div>
-      <div class="recipient-list">
         <select
           v-if="savedRecipients.length"
           class="saved-recipient-select"
@@ -972,11 +1019,16 @@ const filesByDirectory = computed(() => {
             {{ contact.name }} ({{ contact.email }})
           </option>
         </select>
+      </div>
+      <div class="recipient-list" v-if="recipients.length || !savedRecipients.length">
         <Recipient
           v-for="recipient in recipients"
           :key="recipient.id"
           :recipient="recipient"
           :disabled="currentlyUploading"
+          :editing="editingRecipientId === recipient.id && !currentlyUploading"
+          @edit="editRecipient"
+          @close="closeRecipient"
           @remove="removeRecipient"
         />
         <div class="recipient-list-empty" v-if="!recipients.length && !savedRecipients.length">
@@ -1052,57 +1104,66 @@ const filesByDirectory = computed(() => {
   </div>
 
   <div class="upload-button-container">
-    <div class="container-fluid">
-      <div class="row align-items-center">
-        <div class="col d-flex align-items-center justify-content-end">
-          <button
-            class="upload-button block"
-            :disabled="uploadBasket.length === 0 || currentlyUploading"
-            @click="uploadFiles"
-            :class="{ uploading: currentlyUploading }"
-          >
-            <div class="loader" v-if="currentlyUploading">
-              <Loader />
-            </div>
-            <Upload v-else />
-            <template v-if="uploadBasket.length > 0 && currentlyUploading">
-              {{ $t('uploading.files', 'Uploading {value} files', { value: uploadBasket.length }) }}
-            </template>
-            <template v-if="uploadBasket.length > 0 && !currentlyUploading">
-              {{ $t('upload.files', 'Upload {value} files', { value: uploadBasket.length }) }}
-            </template>
-            <template v-if="uploadBasket.length === 0">{{ $t('No files added yet') }}</template>
-          </button>
-        </div>
-
-        <div class="ps-0 col-auto">
-          <button class="icon-only secondary" @click="showPasswordForm = !showPasswordForm">
-            <Lock v-if="passwordProtected" />
-            <LockOpen v-else />
-          </button>
-        </div>
-      </div>
-    </div>
+    <button
+      type="button"
+      class="upload-button"
+      :disabled="uploadBasket.length === 0 || currentlyUploading"
+      :class="{ uploading: currentlyUploading }"
+      @click="uploadFiles"
+    >
+      <div class="loader" v-if="currentlyUploading"><Loader /></div>
+      <Upload v-else />
+      <template v-if="currentlyUploading">
+        {{ $t('uploading.files', 'Uploading {value} files', { value: uploadBasket.length }) }}
+      </template>
+      <template v-else-if="uploadBasket.length > 0">
+        {{ $t('upload.files', 'Upload {value} files', { value: uploadBasket.length }) }}
+      </template>
+      <template v-else>{{ $t('No files added yet') }}</template>
+    </button>
+    <button
+      type="button"
+      class="icon-only secondary"
+      :aria-label="$t('settings.title.share.password_protect')"
+      :aria-expanded="showPasswordForm"
+      @click="showPasswordForm = !showPasswordForm"
+    >
+      <Lock v-if="passwordProtected" />
+      <LockOpen v-else />
+    </button>
   </div>
 
   <input
     type="file"
     @change="handleFileSelect"
     style="display: none"
-    webkitdirectory
-    directory
     ref="fileInput"
     multiple
   />
-  <div class="sharePanel" :class="{ visible: sharePanelVisible }">
-    <div class="sharePanel-content">
-      <div class="sharePanel-close" @click="sharePanelVisible = false">
+  <div
+    class="sharePanel"
+    :class="{ visible: sharePanelVisible }"
+    @click.self="sharePanelVisible = false"
+    @keydown.esc="sharePanelVisible = false"
+  >
+    <div class="sharePanel-content" role="dialog" aria-modal="true" aria-labelledby="share-url-title">
+      <button
+        type="button"
+        class="sharePanel-close icon-only"
+        :aria-label="$t('settings.close')"
+        @click="sharePanelVisible = false"
+      >
         <X />
-      </div>
-      <div class="sharePanel-title">{{ $t('Share URL') }}</div>
+      </button>
+      <div class="sharePanel-title" id="share-url-title">{{ $t('Share URL') }}</div>
       <div class="sharePanel-url">
-        {{ shareUrl }}
-        <button class="sharePanel-copy-button icon-only" @click="copyShareUrl">
+        <input ref="shareUrlInput" type="url" readonly :value="shareUrl" :aria-label="$t('Share URL')" @focus="$event.target.select()" />
+        <button
+          type="button"
+          class="sharePanel-copy-button icon-only"
+          :aria-label="showCopySuccess ? $t('uploader.link_copied', 'Link copied') : $t('uploader.copy_link', 'Copy link')"
+          @click="copyShareUrl"
+        >
           <Check v-if="showCopySuccess" />
           <Copy v-else />
         </button>

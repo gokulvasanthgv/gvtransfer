@@ -1,4 +1,5 @@
 <script setup>
+import SettingsSectionLinks from '../settingsSectionLinks.vue'
 import { ref, onMounted, defineExpose, inject, computed } from 'vue'
 import { Check, X } from 'lucide-vue-next'
 import { getEmailTemplates, updateEmailTemplates, getSettingById, saveSettingsById } from '../../api'
@@ -191,8 +192,8 @@ defineExpose({
 <template>
   <div class="container-fluid">
     <div class="row mb-5">
-      <div class="col-2 d-none d-md-block">
-        <ul class="settings-nav pt-5">
+      <SettingsSectionLinks class="col-12 col-lg-2">
+        <ul class="settings-nav">
           <li>
             <a href="#" @click.prevent="handleNavItemClicked('baseTemplate')">
               {{ $t('settings.emailTemplates.baseTemplate') }}
@@ -204,8 +205,8 @@ defineExpose({
             </a>
           </li>
         </ul>
-      </div>
-      <div class="col-12 col-md-10 pt-5">
+      </SettingsSectionLinks>
+      <div class="col-12 col-lg-10 pt-3">
         <div class="row mb-5">
           <div class="col-12 col-md-8 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="baseTemplate">
@@ -222,7 +223,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.emailTemplates.baseTemplate') }}</h6>
               <p>{{ $t('settings.emailTemplates.baseTemplateDescription') }}</p>
@@ -246,7 +247,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6 class="mt-3">{{ $t('settings.emailTemplates.requiredFields') }}</h6>
               <ul class="required-variables-list">

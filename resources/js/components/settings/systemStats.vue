@@ -1,4 +1,5 @@
 <script setup>
+import SettingsSectionLinks from '../settingsSectionLinks.vue'
 import { ref, onMounted, computed, watch } from 'vue'
 import {
   HardDrive,
@@ -117,8 +118,8 @@ const categoryColors = {
 <template>
   <div class="container-fluid">
     <div class="row">
-      <div class="col-2 d-none d-md-block">
-        <ul class="settings-nav pt-5">
+      <SettingsSectionLinks class="col-12 col-lg-2">
+        <ul class="settings-nav">
           <li>
             <a href="#" @click.prevent="handleNavItemClicked('storage-stats')">
               <HardDrive />
@@ -151,8 +152,8 @@ const categoryColors = {
             </a>
           </li> -->
         </ul>
-      </div>
-      <div class="col-12 col-md-10 pt-5">
+      </SettingsSectionLinks>
+      <div class="col-12 col-lg-10 pt-3">
         <!-- Loading State -->
         <div v-if="loading && !stats" class="loading-container">
           <RefreshCw class="spin" />

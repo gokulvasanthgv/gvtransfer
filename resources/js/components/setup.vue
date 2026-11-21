@@ -313,28 +313,15 @@ const skipAndLogin = async () => {
 
 <style scoped lang="scss">
 .setup-container {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
-  height: 100%;
-  z-index: 230;
   display: flex;
   justify-content: center;
-  align-items: center;
-  // backdrop-filter: blur(10px);
-  pointer-events: none;
-  overflow-y: auto;
-  padding: 20px 0;
 
   .setup-inner {
     background: var(--panel-background-color);
     padding: 20px;
     border-radius: var(--panel-border-radius);
-    width: 30%;
-    min-width: 350px;
-    max-width: 500px;
-    pointer-events: auto;
+    width: min(100%, 31rem);
     h1 {
       font-size: 24px;
       color: var(--panel-text-color);

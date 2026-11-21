@@ -1,4 +1,5 @@
 <script setup>
+import SettingsSectionLinks from '../settingsSectionLinks.vue'
 import { ref, onMounted, watch, defineExpose, onBeforeUnmount, computed } from 'vue'
 import { Pipette, Image, Ruler, Tag, X, Dice5, Images, FileDown, Trash, FileUp, Clock8, RotateCcw   } from 'lucide-vue-next'
 import injectThemeVariables from '../../lib/injectThemeVariables'
@@ -535,8 +536,8 @@ defineExpose({
 <template>
   <div class="container-fluid">
     <div class="row">
-      <div class="col-2 d-none d-md-block">
-        <ul class="settings-nav pt-5">
+      <SettingsSectionLinks class="col-12 col-lg-2">
+        <ul class="settings-nav">
           <li>
             <a href="#" @click.prevent="handleNavItemClicked('background-images')">
               <Images />
@@ -564,11 +565,11 @@ defineExpose({
             </a>
           </li>
         </ul>
-      </div>
-      <div class="col-12 col-md-8 pt-5">
+      </SettingsSectionLinks>
+      <div class="col-12 col-lg-8 pt-3">
         <div class="row mb-5">
           <!-- backgrounds -->
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="background-images">
               <div class="setting-group-header">
                 <h3>
@@ -621,7 +622,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.branding.background_images') }}</h6>
               <p>{{ $t('settings.branding.background_images_description') }}</p>
@@ -637,7 +638,7 @@ defineExpose({
 
         <div class="row mb-5">
           <!-- logo -->
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="logo-settings">
               <div class="setting-group-header">
                 <h3>
@@ -696,7 +697,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{ $t('settings.branding.logo') }}</h6>
               <p>
@@ -712,7 +713,7 @@ defineExpose({
 
         <div class="row mb-5">
           <!-- UI Colours -->
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="ui-colours">
               <div class="setting-group-header">
                 <h3>
@@ -758,7 +759,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{$t('settings.branding.select_theme')}}</h6>
               <p>{{$t('settings.branding.select_theme_description')}}</p>
@@ -775,7 +776,7 @@ defineExpose({
         </div>
 
         <div class="row mb-5">
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="install-custom-theme">
               <div class="setting-group-header">
                 <h3>
@@ -802,7 +803,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{$t('settings.branding.install_custom_theme')}}</h6>
               <p>{{$t('settings.branding.install_custom_theme_description')}}</p>
@@ -817,7 +818,7 @@ defineExpose({
 
         <div class="row mb-5">
           <!-- Other UI settings -->
-          <div class="col-12 col-md-6 pe-0 ps-0 ps-md-3">
+          <div class="col-12 col-lg-6 pe-0 ps-0 ps-md-3">
             <div class="setting-group" id="other-ui-settings">
               <div class="setting-group-header">
                 <h3>
@@ -832,7 +833,7 @@ defineExpose({
               </div>
             </div>
           </div>
-          <div class="d-none d-md-block col ps-0">
+          <div class="d-none d-lg-block col ps-0">
             <div class="section-help">
               <h6>{{$t('settings.branding.show_powered_by')}}</h6>
               <p>

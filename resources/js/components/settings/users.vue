@@ -180,61 +180,63 @@ const confirmForceResetPassword = () => {
 
 <template>
   <div>
-    <table>
-      <thead>
-        <tr>
-          <th>{{ $t('settings.users.id') }}</th>
-          <th>{{ $t('settings.users.email') }}</th>
-          <th>{{ $t('settings.users.name') }}</th>
-          <th>{{ $t('settings.users.account') }}</th>
-          <th>{{ $t('settings.users.created') }}</th>
-          <th>{{ $t('settings.users.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in users" :key="user.id">
-          <td width="1" style="white-space: nowrap">{{ user.id }}</td>
-          <td>
-            {{ user.email }}
-            <div class="tags" v-if="user.id === store.userId || user.admin || user.must_change_password">
-              <span v-if="user.id === store.userId" class="you-tag">{{ $t('settings.users.you') }}</span>
-              <span v-if="user.admin" class="admin-tag">{{ $t('settings.users.admin') }}</span>
-              <span v-if="user.must_change_password" class="must-change-password-tag">
-                {{ $t('settings.users.must_change_password') }}
-              </span>
-            </div>
-          </td>
-          <td>{{ user.name }}</td>
-          <td>
-            <template v-if="user.admin">
-              {{ $t('settings.users.admin') }}
-            </template>
-            <template v-else>
-              {{ $t('settings.users.user') }}
-            </template>
-          </td>
-          <td>{{ niceDate(user.created_at) }}</td>
-          <td width="1" style="white-space: nowrap">
-            <button :disabled="user.id === store.userId" @click="handleEditUserClick(user)">
-              <UserPen />
-              {{ $t('settings.users.edit') }}
-            </button>
-            <button class="secondary" @click="handleViewUserShares(user)">
-              <FolderOpen />
-              {{ $t('settings.users.view_shares') }}
-            </button>
-            <button class="secondary" :disabled="user.id === store.userId" @click="handleForceResetPassword(user)">
-              <KeyRound />
-              {{ $t('settings.users.force_reset_password') }}
-            </button>
-            <button class="secondary" :disabled="user.id === store.userId" @click="handleDeleteUserClick(user.id)">
-              <Trash />
-              {{ $t('settings.users.delete') }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="settings-table-container">
+      <table class="settings-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">{{ $t('settings.users.id') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.users.email') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.users.name') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.users.account') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.users.created') }}</th>
+            <th scope="col" role="columnheader">{{ $t('settings.users.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          <tr role="row" v-for="user in users" :key="user.id">
+            <td role="cell" :data-label="$t('settings.users.id')" width="1" style="white-space: nowrap">{{ user.id }}</td>
+            <td role="cell" :data-label="$t('settings.users.email')">
+              {{ user.email }}
+              <div class="tags" v-if="user.id === store.userId || user.admin || user.must_change_password">
+                <span v-if="user.id === store.userId" class="you-tag">{{ $t('settings.users.you') }}</span>
+                <span v-if="user.admin" class="admin-tag">{{ $t('settings.users.admin') }}</span>
+                <span v-if="user.must_change_password" class="must-change-password-tag">
+                  {{ $t('settings.users.must_change_password') }}
+                </span>
+              </div>
+            </td>
+            <td role="cell" :data-label="$t('settings.users.name')">{{ user.name }}</td>
+            <td role="cell" :data-label="$t('settings.users.account')">
+              <template v-if="user.admin">
+                {{ $t('settings.users.admin') }}
+              </template>
+              <template v-else>
+                {{ $t('settings.users.user') }}
+              </template>
+            </td>
+            <td role="cell" :data-label="$t('settings.users.created')">{{ niceDate(user.created_at) }}</td>
+            <td role="cell" :data-label="$t('settings.users.actions')" width="1" style="white-space: nowrap">
+              <button :disabled="user.id === store.userId" @click="handleEditUserClick(user)">
+                <UserPen />
+                {{ $t('settings.users.edit') }}
+              </button>
+              <button class="secondary" @click="handleViewUserShares(user)">
+                <FolderOpen />
+                {{ $t('settings.users.view_shares') }}
+              </button>
+              <button class="secondary" :disabled="user.id === store.userId" @click="handleForceResetPassword(user)">
+                <KeyRound />
+                {{ $t('settings.users.force_reset_password') }}
+              </button>
+              <button class="secondary" :disabled="user.id === store.userId" @click="handleDeleteUserClick(user.id)">
+                <Trash />
+                {{ $t('settings.users.delete') }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <div class="user-form-overlay" :class="{ active: newUserFormActive }" @click="newUserFormClickOutside">

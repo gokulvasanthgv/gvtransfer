@@ -16,7 +16,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import CommandPalette from './components/CommandPalette.vue'
 
 //3rd party
-import { LogOut, Settings as SettingsIcon, MailPlus } from 'lucide-vue-next'
+import { LogOut, Settings as SettingsIcon, MailPlus, Menu, X } from 'lucide-vue-next'
 import { TolgeeProvider } from '@tolgee/vue'
 import { useToast } from 'vue-toastification'
 import { useTranslate } from '@tolgee/vue'
@@ -25,7 +25,7 @@ import { useTranslate } from '@tolgee/vue'
 import { domData, domError, domSuccess } from './domData'
 import { emitter, store } from './store'
 import { logout } from './api'
-import { checkUrlHash, clearUrlHash } from './composables/useSettingsNavigation'
+import { checkUrlHash } from './composables/useSettingsNavigation'
 
 
 //use
@@ -45,6 +45,28 @@ const downloadShareCode = ref('')
 const settingsPanel = ref(null)
 const toast = useToast()
 const reverseInvite = ref(null)
+const showLanguageSelector = domData().show_language_selector === true
+const appMenuOpen = ref(false)
+const appMenuToggle = ref(null)
+const settingsButton = ref(null)
+let openedSettingsFromMenu = false
+
+const closeAppMenu = (restoreFocus = false) => {
+  if (!appMenuOpen.value) return
+  appMenuOpen.value = false
+  if (restoreFocus) appMenuToggle.value?.focus()
+}
+
+watch(() => store.settingsOpen, async (open) => {
+  if (open) closeAppMenu()
+  if (!open && openedSettingsFromMenu) {
+    openedSettingsFromMenu = false
+    await nextTick()
+    const toggle = appMenuToggle.value
+    const returnTarget = toggle?.getClientRects().length ? toggle : settingsButton.value
+    returnTarget?.focus({ preventScroll: true })
+  }
+})
 
 onMounted(() => {
 
@@ -127,14 +149,17 @@ const handleLogoutClick = () => {
     }
   }
 
+  closeAppMenu(true)
   logout()
 }
 
 const openSettings = () => {
+  openedSettingsFromMenu = true
   store.setSettingsOpen(true)
 }
 
 const openReverseShareInvite = () => {
+  closeAppMenu(true)
   reverseInvite.value.showReverseInviteForm()
 }
 
@@ -193,6 +218,11 @@ const checkSettingsDeepLink = () => {
 watch(
   () => store.loggedIn,
   (isLoggedIn) => {
+    if (!isLoggedIn) {
+      closeAppMenu()
+      store.setSettingsOpen(false)
+      return
+    }
     if (isLoggedIn && !deepLinkHandled.value) {
       // Small delay to ensure settings panel is mounted
       setTimeout(() => {
@@ -206,11 +236,70 @@ watch(
 <template>
   <TolgeeProvider>
     <Background />
-    <LanguageSelector />
-    <div class="logo-container" v-if="store.mode !== 'setup'">
-      <a href="/"><img :src="logoUrl" alt="Erugo" id="logo" :style="{ width: `${logoWidth}px` }" /></a>
-    </div>
-    <div class="main">
+    <header
+      v-if="store.mode !== 'setup' || showLanguageSelector"
+      class="app-header"
+      :inert="store.settingsOpen"
+      @keydown.esc="closeAppMenu(true)"
+    >
+      <a v-if="store.mode !== 'setup'" class="logo-container" href="/">
+        <img :src="logoUrl" alt="Erugo" id="logo" :style="{ width: `${logoWidth}px` }" />
+      </a>
+      <template v-if="showLanguageSelector || store.isLoggedIn()">
+        <button
+          type="button"
+          class="app-menu-toggle secondary icon-only"
+          ref="appMenuToggle"
+          :aria-label="$t('navigation.menu', 'Menu')"
+          :aria-expanded="appMenuOpen"
+          aria-controls="app-actions"
+          @click="appMenuOpen = !appMenuOpen"
+        >
+          <X v-if="appMenuOpen" />
+          <Menu v-else />
+        </button>
+        <nav
+          id="app-actions"
+          class="app-actions"
+          :class="{ 'is-open': appMenuOpen }"
+          :aria-label="$t('navigation.menu', 'Menu')"
+        >
+          <button
+            v-if="store.isLoggedIn() && !store.isGuest() && allowReverseShares"
+            type="button"
+            class="app-action secondary"
+            :title="t('button.reverse_share_invite')"
+            @click="openReverseShareInvite"
+          >
+            <MailPlus />
+            <span>{{ $t('button.reverse_share_invite') }}</span>
+          </button>
+          <button
+            v-if="store.isLoggedIn() && !store.isGuest()"
+            type="button"
+            class="app-action secondary"
+            ref="settingsButton"
+            :title="$t('navigation.settings', 'Settings')"
+            @click="openSettings"
+          >
+            <SettingsIcon />
+            <span>{{ $t('navigation.settings', 'Settings') }}</span>
+          </button>
+          <button
+            v-if="store.isLoggedIn()"
+            type="button"
+            class="app-action secondary"
+            :title="store.isGuest() ? t('auth.end_guest_session') : t('auth.logout')"
+            @click="handleLogoutClick"
+          >
+            <LogOut />
+            <span>{{ store.isGuest() ? t('auth.end_guest_session') : t('auth.logout') }}</span>
+          </button>
+          <LanguageSelector v-if="showLanguageSelector" />
+        </nav>
+      </template>
+    </header>
+    <main class="main" :inert="store.settingsOpen">
       <!-- auth: shows if user is not logged in and the mode is upload -->
       <Auth v-show="!store.isLoggedIn() && store.mode === 'upload'" ref="auth" />
 
@@ -225,36 +314,12 @@ watch(
 
       <!-- thank guest for upload: shows if mode is thank_guest_for_upload -->
       <ThankGuestForUpload v-if="store.mode === 'thank_guest_for_upload'" />
-    </div>
+    </main>
 
-    <footer>
-      <!-- version info: shows if show_powered_by is true -->
-      <div class="powered-by" v-if="showPoweredBy">
+    <footer v-if="showPoweredBy" :inert="store.settingsOpen">
+      <div class="powered-by">
         {{ $t('Powered by') }}
         <a href="https://erugo.app"><img :src="'/icon.svg'" alt="Erugo" class="erugo-icon" /> Erugo</a>
-      </div>
-      <!-- main menu: shows if user is logged in -->
-      <div class="main-menu" v-if="store.isLoggedIn()">
-        <button
-          class="reverse-share-invite-button secondary icon-only"
-          :title="t('button.reverse_share_invite')"
-          @click="openReverseShareInvite"
-          v-if="!store.isGuest() && allowReverseShares"
-        >
-          <MailPlus />
-        </button>
-
-        <button class="settings-button secondary icon-only" @click="openSettings" v-if="!store.isGuest()">
-          <SettingsIcon />
-        </button>
-
-        <button
-          class="logout icon-only secondary"
-          @click="handleLogoutClick"
-          :title="store.isGuest() ? t('auth.end_guest_session') : t('auth.logout')"
-        >
-          <LogOut />
-        </button>
       </div>
     </footer>
 

@@ -140,8 +140,8 @@ function getDirectories(structure) {
             <Check class="status-icon completed" />
           </template>
         </div>
-        <div class="hover-actions" v-if="!readOnly && !isUploading">
-          <button class="icon-only" @click="$emit('remove-file', file)">
+        <div class="file-actions" v-if="!readOnly && !isUploading">
+          <button type="button" class="icon-only secondary" :aria-label="$t('uploader.remove_file', 'Remove file')" @click.stop="$emit('remove-file', file)">
             <Trash />
           </button>
         </div>
@@ -197,8 +197,8 @@ function getDirectories(structure) {
                 <Check class="status-icon completed" />
               </template>
             </div>
-            <div class="hover-actions" v-if="!readOnly && !isUploading">
-              <button class="icon-only" @click="$emit('remove-file', file)">
+            <div class="file-actions" v-if="!readOnly && !isUploading">
+              <button type="button" class="icon-only secondary" :aria-label="$t('uploader.remove_file', 'Remove file')" @click.stop="$emit('remove-file', file)">
                 <Trash />
               </button>
             </div>
@@ -239,10 +239,15 @@ function getDirectories(structure) {
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+  }
 }
 
 .directory-files {
-  margin-left: 16px;
+  margin-inline-start: min(2vw, 0.625rem);
 }
 
 .upload-basket-item.clickable {
@@ -260,7 +265,6 @@ function getDirectories(structure) {
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  padding-left: 12px;
   font-size: 0.85em;
   
   .status-icon {
